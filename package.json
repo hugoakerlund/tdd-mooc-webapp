@@ -1,0 +1,18 @@
+{
+  "name": "tdd-mooc-webapp",
+  "version": "1.0.0-SNAPSHOT",
+  "description": "Exercise for learning full-stack TDD",
+  "homepage": "https://github.com/luontola/tdd-mooc-webapp",
+  "license": "Apache-2.0",
+  "private": true,
+  "devDependencies": {
+    "prettier": "^3.1.1"
+  },
+  "engines": {
+    "node": ">=20",
+    "npm": ">=10"
+  },
+  "scripts": {
+    "format": "prettier --write ."
+  }
+}
