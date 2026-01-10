@@ -11,23 +11,9 @@ interface Todo {
 const TodoList: React.FC = () => {
   const [todos, setTodos] = useState<Todo[]>([]);
   const [newTitle, setNewTitle] = useState('');
-  const [apiMessage, setApiMessage] = useState('');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchMessage = async () => {
-      try {
-        const response = await apiClient.get('/');
-        setApiMessage(response.data.text);
-      }
-      catch (error) {
-        console.error('Error fetching message from API:', error);
-        setApiMessage('Error fetching message');
-      }
-      finally {
-        setLoading(false);
-      }
-    };
 
     const fetchTodos = async () => {
       try {
@@ -38,7 +24,6 @@ const TodoList: React.FC = () => {
       }
     };
 
-    fetchMessage();
     fetchTodos();
 
   }, []);
@@ -84,15 +69,36 @@ const TodoList: React.FC = () => {
     }
   };
 
+  const increaseTodoPriority = (id: number) => async () => {
+    if (todos.find((t) => t.id === id)?.priority === 10 ||
+        todos.find((t) => t.id === id)?.completed === true) return;
+    console.log('Increasing priority for todo with id:', id);
+    try {
+      const response = await apiClient.post<{ text: string }>('/api/todos/increase_priority', { id });
+      setTodos((prev) => prev.map((t) => t.id === id ? { ...t, priority: t.priority + 1 } : t));
+    } catch (error) {
+      console.error('Error increasing todo priority:', error);
+    }
+  };
+
+  const decreaseTodoPriority = (id: number) => async () => {
+    if (todos.find((t) => t.id === id)?.priority === 1 || 
+        todos.find((t) => t.id === id)?.completed === true) return;
+    console.log('Decreasing priority for todo with id:', id);
+    try {
+      const response = await apiClient.post<{ text: string }>('/api/todos/decrease_priority', { id });
+      setTodos((prev) => prev.map((t) => t.id === id ? { ...t, priority: t.priority - 1 } : t));
+    } catch (error) {
+      console.error('Error decreasing todo priority:', error);
+    }
+  };
+
+const noBullets={
+  listStyleType:'none'
+}
   return (
     <div>
       <h1>Todo List</h1>
-      <div className="todo-count" style={{ marginBottom: 20, fontWeight: 'bold' }}>
-        Total Todos: {todos.length}
-      </div>
-      <div style={{ marginBottom: 20 }}>
-        {apiMessage ? (apiMessage) : (loading ? 'Loading message from API...' : 'No message from API')}
-      </div>
       <div style={{ marginBottom: 14, display: 'flex', gap: 8 }}>
         <input
           type="text"
@@ -129,17 +135,29 @@ const TodoList: React.FC = () => {
           Add
         </button>
       </div>
-      <ul>
-        {todos.map((todo) => (
-          <li key={todo.id} style={{ marginBottom: 8 }}>
+      <div className="todo-count" style={{ marginBottom: 20, fontWeight: 'bold' }}>
+        Total Todos: {todos.length}
+      </div>
+      <ul style={noBullets}> 
+        {todos.sort((a, b) => b.priority - a.priority || a.id - b.id).map((todo) => (
+          <li  style={{ marginBottom: 8 }}>
+            <span style={{ textDecoration: 'none', 
+                           color: todo.completed ? 'gray' : 'white', marginLeft: 9 }}>
+              {todo.priority}.
+            </span>
+            <span style={{ textDecoration: todo.completed ? 'line-through' : 'none', 
+                           color: todo.completed ? 'gray' : 'white', marginLeft: 8 }}>
+              {todo.title}
+            </span>
             <button
               onClick={deleteTodo(todo.id)}
               style={{
-                marginRight: 8,
+                marginRight: 4,
+                marginLeft: 100,
                 padding: '4px 8px',
                 borderRadius: 4,
                 border: 'none',
-                backgroundColor: '#dc3545',
+                backgroundColor: todo.completed ? '#ff0019' : '#dc3545',
                 color: 'white',
                 cursor: 'pointer',
                 fontSize: 12,
@@ -147,17 +165,42 @@ const TodoList: React.FC = () => {
             >
               Delete
             </button>
+            <button
+              onClick={increaseTodoPriority(todo.id)}
+              style={{
+                marginRight: 4,
+                padding: '1px 6px',
+                borderRadius: 4,
+                border: 'none',
+                backgroundColor: todo.completed ? '#202e23' : '#28a745',
+                color: 'white',
+                cursor: 'pointer',
+                fontSize: 12,
+              }}
+            >
+              +
+            </button>
+            <button
+              onClick={decreaseTodoPriority(todo.id)}
+              style={{
+                marginRight: 4,
+                padding: '1px 6px',
+                borderRadius: 4,
+                border: 'none',
+                backgroundColor: todo.completed ? '#40371c' : '#ffc107',
+                color: 'white',
+                cursor: 'pointer',
+                fontSize: 12,
+              }}
+            >
+              -
+            </button>
             <input
               type="checkbox"
               checked={todo.completed}
               onChange={() => toggleCompleted(todo.id)}
             />
-            <span style={{ textDecoration: todo.completed ? 'line-through' : 'none', marginLeft: 8 }}>
-              {todo.priority}
-            </span>
-            <span style={{ textDecoration: todo.completed ? 'line-through' : 'none', marginLeft: 8 }}>
-              {todo.title}
-            </span>
+
           </li>
         ))}
       </ul>

@@ -44,6 +44,8 @@ pub fn build_app(db: Arc<todo_list_dao::TodoListDao>) -> Router {
         .route("/api/todos", get(list_todos).post(create_todo))
         .route("/api/todos/complete", post(toggle_todo_completion))
         .route("/api/todos/delete", post(delete_todo))
+        .route("/api/todos/increase_priority", post(increase_todo_priority))
+        .route("/api/todos/decrease_priority", post(decrease_todo_priority))
         .layer(Extension(db))
         .layer(cors)
 }
@@ -60,7 +62,7 @@ pub async fn create_todo(Extension(
     Json(payload): Json<CreateTodo>) 
     -> (StatusCode, Json<Todo>) {
     println!("Creating todo"); 
-    let priority = payload.priority.unwrap_or(0u8);
+    let priority = payload.priority.unwrap_or(1u8);
     let new = Todo {
         id: 0,
         title: payload.title,
@@ -112,6 +114,40 @@ pub async fn delete_todo(Extension(
         Err(_) => {
             let msg = Message { text: format!("Failed to delete todo with id {}", payload.id) };
             (StatusCode::INTERNAL_SERVER_ERROR, Json(msg))
+        }
+    }
+}
+
+pub async fn increase_todo_priority(Extension(
+    db): Extension<Arc<todo_list_dao::TodoListDao>>, 
+    Json(payload): Json<IdPayload>) -> (StatusCode, Json<Message>) {
+    println!("Increasing todo priority");
+
+    let id = payload.id as u64;
+
+    match db.increase_todo_priority(id).await {
+        Ok(id_u32) => {
+            (StatusCode::ACCEPTED, Json(Message { text: format!("Todo with id {} priority increased", id_u32) }))
+        }
+        Err(_) => {
+            (StatusCode::INTERNAL_SERVER_ERROR, Json(Message { text: "Failed to increase todo priority".into() }))
+        }
+    }
+}
+
+pub async fn decrease_todo_priority(Extension(
+    db): Extension<Arc<todo_list_dao::TodoListDao>>, 
+    Json(payload): Json<IdPayload>) -> (StatusCode, Json<Message>) {
+    println!("Increasing todo priority");
+
+    let id = payload.id as u64;
+
+    match db.decrease_todo_priority(id).await {
+        Ok(id_u32) => {
+            (StatusCode::ACCEPTED, Json(Message { text: format!("Todo with id {} priority decreased", id_u32) }))
+        }
+        Err(_) => {
+            (StatusCode::INTERNAL_SERVER_ERROR, Json(Message { text: "Failed to decrease todo priority".into() }))
         }
     }
 }

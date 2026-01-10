@@ -3,6 +3,8 @@ use backend::{CreateTodo,
               create_todo, 
               toggle_todo_completion, 
               delete_todo,
+              increase_todo_priority,
+              decrease_todo_priority,
               root};
 use backend::todo_list_dao::TodoListDao;
 use axum::http::StatusCode;
@@ -37,6 +39,38 @@ async fn test_toggle_todo_completion() {
     assert_eq!(json.0.id, 1);
     assert_eq!(json.0.priority, 0);
     assert_eq!(json.0.completed, true);
+}
+
+#[tokio::test]
+async fn test_increase_todo_priority() {
+    let dao = TodoListDao::new().await.unwrap();
+    dao.initialize().await;
+    let todo = backend::Todo {
+        id: 1,
+        title: "Test Priority".to_string(),
+        priority: 1,
+        completed: false,
+    };
+    dao.save_todo(&todo).await.unwrap();
+    let (status, json) = increase_todo_priority(axum::Extension(Arc::new(dao)), axum::Json(IdPayload { id: 1 })).await;
+    assert_eq!(status, StatusCode::ACCEPTED);
+    assert_eq!(json.0.text, "Todo with id 1 priority increased");
+}
+
+#[tokio::test]
+async fn test_decrease_todo_priority() {
+    let dao = TodoListDao::new().await.unwrap();
+    dao.initialize().await;
+    let todo = backend::Todo {
+        id: 1,
+        title: "Test Priority".to_string(),
+        priority: 1,
+        completed: false,
+    };
+    dao.save_todo(&todo).await.unwrap();
+    let (status, json) = decrease_todo_priority(axum::Extension(Arc::new(dao)), axum::Json(IdPayload { id: 1 })).await;
+    assert_eq!(status, StatusCode::ACCEPTED);
+    assert_eq!(json.0.text, "Todo with id 1 priority decreased");
 }
 
 #[tokio::test]
@@ -179,4 +213,25 @@ async fn test_dao_increase_todo_priority() {
     println!("Todos after priority increase: {:?}", todos_after_increase);
     let increased_priority = todos_after_increase[0].get::<i32, _>("priority");
     assert_eq!(increased_priority, 2, "Expected the todo priority to be increased by 1");
+}
+
+#[tokio::test]
+async fn test_dao_decrease_todo_priority() {
+    let todo = backend::Todo {
+        id: 1,
+        title: "High Priority".to_string(),
+        priority: 5,
+        completed: false,
+    };
+    let dao = TodoListDao::new().await.unwrap();
+    dao.initialize().await;
+    dao.save_todo(&todo).await.unwrap();
+    let todos_before_decrease = dao.query_todos().await.unwrap();
+    println!("Todos before priority decrease: {:?}", todos_before_decrease);
+
+    dao.decrease_todo_priority(todo.id as u64).await.unwrap();
+    let todos_after_decrease = dao.query_todos().await.unwrap();
+    println!("Todos after priority decrease: {:?}", todos_after_decrease);
+    let decreased_priority = todos_after_decrease[0].get::<i32, _>("priority");
+    assert_eq!(decreased_priority, 4, "Expected the todo priority to be decreased by 1");
 }
