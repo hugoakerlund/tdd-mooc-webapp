@@ -6,8 +6,6 @@ use axum::{
 };
 use serde::{Deserialize, Serialize};
 use tower_http::cors::{Any, CorsLayer};
-use sqlx::postgres::PgPoolOptions;
-use std::time::Duration;
 
 pub mod todo_list_dao;
 
@@ -22,7 +20,7 @@ pub struct CreateTodo{
     pub priority: u8,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Debug)]
 pub struct Todo {
     pub id: u64,
     pub name: String,

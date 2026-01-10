@@ -1,4 +1,4 @@
-use sqlx::{Acquire, database, postgres::PgPoolOptions};
+use sqlx::{postgres::PgPoolOptions};
 use dotenvy::dotenv;
 use crate::Todo;
 
@@ -29,6 +29,11 @@ impl TodoListDao {
         self.database.size() == 0
     }
 
+    pub async fn initialize(&self) {
+        self.trucate_tables().await.ok().unwrap();
+        self.create_table().await.ok().unwrap();
+    }
+
     pub async fn create_table(&self) -> Result<&'static str, sqlx::Error> {
         sqlx::query(
             "CREATE TABLE IF NOT EXISTS todos (
@@ -44,11 +49,26 @@ impl TodoListDao {
         Ok("Database table created successfully")
     }
 
+     pub async fn drop_tables(&self) -> Result<&'static str, sqlx::Error> {
+        sqlx::query("DROP TABLE IF EXISTS todos")
+            .execute(&self.database)
+            .await?;
+        Ok("All tables dropped successfully")
+    }
+
+    pub async fn trucate_tables(&self) -> Result<&'static str, sqlx::Error> {
+        sqlx::query("TRUNCATE TABLE todos")
+            .execute(&self.database)
+            .await?;
+        Ok("All tables truncated successfully")
+    }
+
+   
     pub async fn query_todos(&self) -> Result<Vec<sqlx::postgres::PgRow>, sqlx::Error> {
-        let todos = sqlx::query("
+        println!("Querying todos from the database...");
+        let todos: Vec<sqlx::postgres::PgRow> = sqlx::query("
             SELECT id, title, priority
             FROM todos
-            WHERE title ILIKE $1
             ORDER BY priority DESC, created_at ASC")
             .fetch_all(&self.database)
             .await?;
@@ -66,14 +86,8 @@ impl TodoListDao {
         Ok(result.rows_affected())
     }
 
-    pub async fn trucate_tables(&self) -> Result<&'static str, sqlx::Error> {
-        sqlx::query("TRUNCATE TABLE todos")
-            .execute(&self.database)
-            .await?;
-        Ok("All tables truncated successfully")
-    }
-
     pub async fn delete_todo(&self, todo_id: u64) -> Result<u64, sqlx::Error> {
+        println!("Deleting todo with id {} from the database...", todo_id);
         let result = sqlx::query("DELETE FROM todos WHERE id = $1")
             .bind(todo_id as i32)
             .execute(&self.database)
