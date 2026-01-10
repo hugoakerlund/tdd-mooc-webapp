@@ -99,4 +99,13 @@ impl TodoListDao {
             .await?;
         Ok(result.rows_affected())
     }
+
+    pub async fn toggle_todo_completion(&self, todo_id: u64) -> Result<u32, sqlx::Error> {
+        println!("Changing todo with id {} to completed in the database...", todo_id);
+        sqlx::query("UPDATE todos SET completed = NOT completed WHERE id = $1")
+            .bind(todo_id as i32)
+            .execute(&self.database)
+            .await?;
+        Ok(todo_id as u32)
+    }
 }

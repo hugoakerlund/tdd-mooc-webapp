@@ -1,4 +1,4 @@
-use backend::{CreateTodo, create_todo, root};
+use backend::{CreateTodo, IdPayload, create_todo, toggle_todo_completion, root};
 use backend::todo_list_dao::TodoListDao;
 use axum::http::StatusCode;
 use sqlx::Row;
@@ -20,6 +20,18 @@ async fn test_create_todo() {
     assert_eq!(json.0.id, 1);
     assert_eq!(json.0.title, "Test");
     assert_eq!(json.0.priority, 2);
+    assert_eq!(json.0.completed, false);
+}
+
+#[tokio::test]
+async fn test_toggle_todo_completion() {
+    let dao = TodoListDao::new().await.unwrap();
+    dao.initialize().await;
+    let (status, json) = toggle_todo_completion(axum::Extension(Arc::new(dao)), axum::Json(IdPayload { id: 1 })).await;
+    assert_eq!(status, StatusCode::ACCEPTED);
+    assert_eq!(json.0.id, 1);
+    assert_eq!(json.0.priority, 0);
+    assert_eq!(json.0.completed, true);
 }
 
 #[tokio::test]
@@ -83,7 +95,7 @@ async fn test_truncate_tables() {
 }
 
 #[tokio::test]
-async fn test_delete_todo() {
+async fn test_dao_delete_todo() {
     let todo = backend::Todo {
         id: 1,
         title: "Test Delete".to_string(),
@@ -102,4 +114,27 @@ async fn test_delete_todo() {
     dao.delete_todo(todo_id).await.unwrap();
     let todos_after_delete = dao.query_todos().await.unwrap();
     assert_eq!(todos_after_delete.len(), 0, "Expected no todos in the database after deletion");
+}
+
+#[tokio::test]
+async fn test_dao_change_todo_to_completed() {
+    let todo = backend::Todo {
+        id: 1,
+        title: "Test Complete".to_string(),
+        priority: 1,
+        completed: false,
+    };
+    let dao: TodoListDao = TodoListDao::new().await.unwrap();
+    dao.initialize().await;
+    dao.save_todo(&todo).await.unwrap();
+    let todos_after_save = dao.query_todos().await.unwrap();
+    println!("Todos after save: {:?}", todos_after_save);
+
+    assert_eq!(todos_after_save.len(), 1, "Expected one todo in the database after saving");
+    let todo_id = todos_after_save[0].get::<i32, _>("id") as u64;
+    dao.toggle_todo_completion(todo_id).await.unwrap();
+    let todos_after_update = dao.query_todos().await.unwrap();
+    println!("Todos after update: {:?}", todos_after_update);
+    let completed_status = todos_after_update[0].get::<bool, _>("completed");
+    assert_eq!(completed_status, true, "Expected the todo to be marked as completed");
 }

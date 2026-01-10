@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import apiClient from './client';
 
 interface Todo {
@@ -65,11 +64,11 @@ const TodoList: React.FC = () => {
 
   const toggleCompleted = async (id: number) => {
     console.log('Toggling todo with id:', id);
+    const todo = todos.find((t) => t.id === id);
+    if (!todo) return;
     try {
-      const todo = todos.find((t) => t.id === id);
-      if (!todo) return;
+      const response = await apiClient.post<Todo>('/api/todos/complete', { id });
       setTodos((prev) => prev.map((t) => t.id === id ? { ...t, completed: !t.completed } : t));
-      await apiClient.put(`/api/todos/${id}`, { completed: !todo.completed });
     } catch (error) {
       console.error('Error toggling todo:', error);
     }
@@ -122,13 +121,18 @@ const TodoList: React.FC = () => {
       </div>
       <ul>
         {todos.map((todo) => (
-          <li key={todo.priority} style={{ marginBottom: 8 }}>
+          <li key={todo.id} style={{ marginBottom: 8 }}>
             <input
               type="checkbox"
               checked={todo.completed}
               onChange={() => toggleCompleted(todo.id)}
             />
-            {todo.title}
+            <span style={{ textDecoration: todo.completed ? 'line-through' : 'none', marginLeft: 8 }}>
+              {todo.priority}
+            </span>
+            <span style={{ textDecoration: todo.completed ? 'line-through' : 'none', marginLeft: 8 }}>
+              {todo.title}
+            </span>
           </li>
         ))}
       </ul>

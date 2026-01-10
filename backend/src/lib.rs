@@ -1,5 +1,5 @@
 use axum::{
-    routing::get,
+    routing::{get, post},
     Router,
     extract::{Json, Extension},
     http::{StatusCode, Method},
@@ -22,6 +22,11 @@ pub struct CreateTodo{
     pub priority: Option<u8>,
 }
 
+#[derive(Deserialize)]
+pub struct IdPayload {
+    pub id: u32,
+}
+
 #[derive(Serialize, Debug)]
 pub struct Todo {
     pub id: u32,
@@ -37,6 +42,7 @@ pub fn build_app(db: Arc<todo_list_dao::TodoListDao>) -> Router {
     Router::new()
         .route("/", get(root))
         .route("/api/todos", get(list_todos).post(create_todo))
+        .route("/api/todos/complete", post(toggle_todo_completion))
         .layer(Extension(db))
         .layer(cors)
 }
@@ -48,7 +54,10 @@ pub async fn root() -> Json<Message> {
     })
 }
 
-pub async fn create_todo(Extension(db): Extension<Arc<todo_list_dao::TodoListDao>>, Json(payload): Json<CreateTodo>) -> (StatusCode, Json<Todo>) {
+pub async fn create_todo(Extension(
+    db): Extension<Arc<todo_list_dao::TodoListDao>>,
+    Json(payload): Json<CreateTodo>) 
+    -> (StatusCode, Json<Todo>) {
     println!("Creating todo"); 
     let priority = payload.priority.unwrap_or(0u8);
     let new = Todo {
@@ -67,7 +76,28 @@ pub async fn create_todo(Extension(db): Extension<Arc<todo_list_dao::TodoListDao
     }
 }
 
-pub async fn list_todos(Extension(db): Extension<Arc<todo_list_dao::TodoListDao>>) -> Json<Vec<Todo>> {
+pub async fn toggle_todo_completion(Extension(
+    db): Extension<Arc<todo_list_dao::TodoListDao>>, 
+    Json(payload): Json<IdPayload>) -> (StatusCode, Json<Todo>) {
+    println!("Changing todo to completed");
+
+    let id = payload.id as u64;
+
+    match db.toggle_todo_completion(id).await {
+        Ok(id_u32) => {
+            let todo = Todo { id: id_u32, title: String::new(), priority: 0, completed: true };
+            (StatusCode::ACCEPTED, Json(todo))
+        }
+        Err(_) => {
+            let fallback = Todo { id: payload.id, title: String::new(), priority: 0, completed: true };
+            (StatusCode::INTERNAL_SERVER_ERROR, Json(fallback))
+        }
+    }
+}
+
+pub async fn list_todos(Extension(
+    db): Extension<Arc<todo_list_dao::TodoListDao>>) 
+    -> Json<Vec<Todo>> {
     println!("Listing todos...");
     let mut todos: Vec<Todo> = Vec::new();
     if let Ok(rows) = db.query_todos().await {
