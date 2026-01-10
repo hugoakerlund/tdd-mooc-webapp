@@ -42,45 +42,59 @@ const TodoList: React.FC = () => {
   };
 
   const toggleCompleted = async (id: number) => {
-    setTodos((prev) => {
-      const updated = prev.map((t) => (t.id === id ? { ...t, completed: !t.completed } : t));
-      const newVal = updated.find((t) => t.id === id)!.completed;
-
-      (async () => {
-        try {
-          await axios.patch(`/api/todos/${id}`, { completed: newVal });
-        } catch (error) {
-          console.error('Failed to update todo remotely, reverting:', error);
-          setTodos((curr) => curr.map((t) => (t.id === id ? { ...t, completed: !newVal } : t)));
-        }
-      })();
-
-      return updated;
-    });
+    console.log('Toggling todo with id:', id);
+    try {
+        const todo = todos.find((t) => t.id === id);
+        if (!todo) return;
+        await axios.put(`/api/todos/${id}`, { completed: !todo.completed });
+        setTodos((prev) => prev.map((t) => t.id === id ? { ...t, completed: !t.completed } : t));
+    } catch (error) {
+        console.error('Error toggling todo:', error);
+    }
   };
 
   return (
     <div>
       <h1>Todo List</h1>
-      <div style={{ marginBottom: 12 }}>
-        <input
-          type="text"
-          placeholder="Add todo..."
-          value={newTitle}
-          onChange={(e) => setNewTitle(e.target.value)}
-          onKeyDown={async (e) => {
-            if (e.key === 'Enter') {
-              await handleAdd();
-            }
-          }}
-        />
-        <button onClick={handleAdd} style={{ marginLeft: 8 }}>
-          Add
-        </button>
-      </div>
+    <div style={{ marginBottom: 14, display: 'flex', gap: 8 }}>
+      <input
+        type="text"
+        placeholder="Add todo..."
+        value={newTitle}
+        onChange={(e) => setNewTitle(e.target.value)}
+        onKeyDown={async (e) => {
+        if (e.key === 'Enter') {
+          await handleAdd();
+        }
+        }}
+        style={{
+        flex: 1,
+        padding: '8px 12px',
+        borderRadius: 4,
+        border: '1px solid #ddd',
+        fontSize: 14,
+        fontFamily: 'inherit',
+        }}
+      />
+      <button
+        onClick={handleAdd}
+        style={{
+        padding: '8px 16px',
+        borderRadius: 4,
+        border: 'none',
+        backgroundColor: '#007bff',
+        color: 'white',
+        cursor: 'pointer',
+        fontSize: 14,
+        fontWeight: 500,
+        }}
+      >
+        Add
+      </button>
+    </div>
       <ul>
         {todos.map((todo) => (
-          <li key={todo.id}>
+          <li key={todo.priority} style={{ marginBottom: 8 }}>
             <input
               type="checkbox"
               checked={todo.completed}

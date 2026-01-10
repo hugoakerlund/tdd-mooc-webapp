@@ -1,7 +1,8 @@
 use dotenvy::dotenv;
 use std::net::SocketAddr;
 
-use backend::{build_app, create_pool};
+use backend::{build_app};
+use backend::todo_list_dao::TodoListDao;
 
 #[tokio::main]
 async fn main() {
@@ -13,13 +14,7 @@ async fn main() {
     }
 
     // Initialize database pool (fail early with helpful message)
-    let _db_pool = match create_pool().await {
-        Ok(pool) => pool,
-        Err(e) => {
-            eprintln!("Failed to create pool: {}. Check DATABASE_URL and credentials.", e);
-            std::process::exit(1);
-        }
-    };
+    let _database = TodoListDao::new().await.unwrap();
 
     let app = build_app();
 
