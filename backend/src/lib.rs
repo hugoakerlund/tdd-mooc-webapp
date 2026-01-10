@@ -55,36 +55,3 @@ pub async fn create_todo(Json(payload): Json<CreateTodo>) -> (StatusCode, Json<T
 
     (StatusCode::CREATED, Json(todo))
 }
-
-pub async fn create_pool() -> Result<sqlx::Pool<sqlx::Postgres>, sqlx::Error> {
-    let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
-
-    let mut attempts = 0u32;
-    let max_attempts = 10u32;
-    let mut delay = Duration::from_secs(1);
-
-    loop {
-        match PgPoolOptions::new()
-            .max_connections(5)
-            .connect(&database_url)
-            .await
-        {
-            Ok(pool) => return Ok(pool),
-            Err(e) => {
-                attempts += 1;
-                if attempts >= max_attempts {
-                    return Err(e);
-                }
-                eprintln!(
-                    "DB connect attempt {}/{} failed: {}. retrying in {}s...",
-                    attempts,
-                    max_attempts,
-                    e,
-                    delay.as_secs()
-                );
-                tokio::time::sleep(delay).await;
-                delay = std::cmp::min(delay * 2, Duration::from_secs(10));
-            }
-        }
-    }
-}

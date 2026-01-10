@@ -20,8 +20,13 @@ impl TodoListDao {
         Ok(Self { database: pool })
     }
 
+    
     pub fn is_open(&self) -> bool {
         !self.database.is_closed()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.database.size() == 0
     }
 
     pub async fn create_table(&self) -> Result<&'static str, sqlx::Error> {
@@ -48,5 +53,31 @@ impl TodoListDao {
             .fetch_all(&self.database)
             .await?;
         Ok(todos)
+    }
+
+    pub async fn save_todo(&self, todo: &Todo) -> Result<u64, sqlx::Error> {
+        let result = sqlx::query(
+            "INSERT INTO todos (title, priority) VALUES ($1, $2)"
+        )
+        .bind(&todo.name)
+        .bind(todo.priority as i32)
+        .execute(&self.database)
+        .await?;
+        Ok(result.rows_affected())
+    }
+
+    pub async fn trucate_tables(&self) -> Result<&'static str, sqlx::Error> {
+        sqlx::query("TRUNCATE TABLE todos")
+            .execute(&self.database)
+            .await?;
+        Ok("All tables truncated successfully")
+    }
+
+    pub async fn delete_todo(&self, todo_id: u64) -> Result<u64, sqlx::Error> {
+        let result = sqlx::query("DELETE FROM todos WHERE id = $1")
+            .bind(todo_id as i32)
+            .execute(&self.database)
+            .await?;
+        Ok(result.rows_affected())
     }
 }
