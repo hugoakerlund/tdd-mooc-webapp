@@ -1,4 +1,4 @@
-use sqlx::{postgres::PgPoolOptions};
+use sqlx::{postgres::PgPoolOptions, Row};
 use dotenvy::dotenv;
 use crate::Todo;
 
@@ -30,7 +30,8 @@ impl TodoListDao {
     }
 
     pub async fn initialize(&self) {
-        self.trucate_tables().await.ok().unwrap();
+        // self.trucate_tables().await.ok().unwrap();
+        self.drop_tables().await.ok().unwrap(); 
         self.create_table().await.ok().unwrap();
     }
 
@@ -67,7 +68,7 @@ impl TodoListDao {
     pub async fn query_todos(&self) -> Result<Vec<sqlx::postgres::PgRow>, sqlx::Error> {
         println!("Querying todos from the database...");
         let todos: Vec<sqlx::postgres::PgRow> = sqlx::query("
-            SELECT id, title, priority
+            SELECT id, title, priority, completed
             FROM todos
             ORDER BY priority DESC, created_at ASC")
             .fetch_all(&self.database)
@@ -75,15 +76,19 @@ impl TodoListDao {
         Ok(todos)
     }
 
-    pub async fn save_todo(&self, todo: &Todo) -> Result<u64, sqlx::Error> {
-        let result = sqlx::query(
-            "INSERT INTO todos (title, priority) VALUES ($1, $2)"
+    pub async fn save_todo(&self, todo: &Todo) -> Result<u32, sqlx::Error> {
+        println!("Saving todo to the database...");
+        let row = sqlx::query(
+            "INSERT INTO todos (title, priority, completed) VALUES ($1, $2, $3) RETURNING id"
         )
-        .bind(&todo.name)
+        .bind(&todo.title)
         .bind(todo.priority as i32)
-        .execute(&self.database)
+        .bind(todo.completed)
+        .fetch_one(&self.database)
         .await?;
-        Ok(result.rows_affected())
+
+        let id: i32 = row.get("id");
+        Ok(id as u32)
     }
 
     pub async fn delete_todo(&self, todo_id: u64) -> Result<u64, sqlx::Error> {

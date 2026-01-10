@@ -1,9 +1,8 @@
-use backend::{CreateTodo, Todo, create_todo, root};
+use backend::{CreateTodo, create_todo, root};
 use backend::todo_list_dao::TodoListDao;
-use axum::extract::Json as AxumJson;
 use axum::http::StatusCode;
-use tracing_subscriber::util::SubscriberInitExt;
 use sqlx::Row;
+use std::sync::Arc;
 
 #[tokio::test]
 async fn test_root_returns_welcome_message() {
@@ -12,12 +11,14 @@ async fn test_root_returns_welcome_message() {
 }
 
 #[tokio::test]
-async fn test_create_todo_returns_created_todo() {
-    let payload = CreateTodo { name: "Test".to_string(), priority: 2 };
-    let (status, json) = create_todo(AxumJson(payload)).await;
+async fn test_create_todo() {
+    let payload = CreateTodo { title: "Test".to_string(), priority: Some(2) };
+    let dao = TodoListDao::new().await.unwrap();
+    dao.initialize().await;
+    let (status, json) = create_todo(axum::Extension(Arc::new(dao)), axum::Json(payload)).await;
     assert_eq!(status, StatusCode::CREATED);
     assert_eq!(json.0.id, 1);
-    assert_eq!(json.0.name, "Test");
+    assert_eq!(json.0.title, "Test");
     assert_eq!(json.0.priority, 2);
 }
 
@@ -47,12 +48,13 @@ async fn test_query_todos_when_empty() {
 async fn test_save_todo() {
     let todo = backend::Todo {
         id: 0,
-        name: "Test Save".to_string(),
+        title: "Test Save".to_string(),
         priority: 1,
+        completed: false,
     };
     let dao: TodoListDao = TodoListDao::new().await.unwrap();
     dao.initialize().await;
-    let result: u64 = dao.save_todo(&todo).await.unwrap();
+    let result: u32 = dao.save_todo(&todo).await.unwrap();
     assert_eq!(result, 1, "Expected one row to be affected when saving a todo");
 }
 
@@ -60,8 +62,9 @@ async fn test_save_todo() {
 async fn test_truncate_tables() {
     let todo = backend::Todo {
         id: 1,
-        name: "Test truncate".to_string(),
+        title: "Test truncate".to_string(),
         priority: 1,
+        completed: false,
     };
     let dao: TodoListDao = TodoListDao::new().await.unwrap();
     dao.initialize().await;
@@ -83,8 +86,9 @@ async fn test_truncate_tables() {
 async fn test_delete_todo() {
     let todo = backend::Todo {
         id: 1,
-        name: "Test Delete".to_string(),
+        title: "Test Delete".to_string(),
         priority: 1,
+        completed: false,
     };
     let dao: TodoListDao = TodoListDao::new().await.unwrap();
     dao.initialize().await;

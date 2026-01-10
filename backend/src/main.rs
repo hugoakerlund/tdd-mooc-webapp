@@ -3,15 +3,18 @@ use std::net::SocketAddr;
 
 use backend::{build_app};
 use backend::todo_list_dao::TodoListDao;
+use std::sync::Arc;
 
 #[tokio::main]
 async fn main() {
 
     dotenv().ok();
 
-    let _database = TodoListDao::new().await.unwrap();
+    let database = TodoListDao::new().await.unwrap();
+    database.initialize().await;
+    let db = Arc::new(database);
 
-    let app = build_app();
+    let app = build_app(db.clone());
 
     let addr = SocketAddr::from(([127, 0, 0, 1], 3001));
     let msg = format!("Server listening on http://{}", addr);
