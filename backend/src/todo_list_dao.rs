@@ -57,13 +57,12 @@ impl TodoListDao {
         Ok("All tables dropped successfully")
     }
 
-    pub async fn trucate_tables(&self) -> Result<&'static str, sqlx::Error> {
+    pub async fn truncate_tables(&self) -> Result<&'static str, sqlx::Error> {
         sqlx::query("TRUNCATE TABLE todos")
             .execute(&self.database)
             .await?;
         Ok("All tables truncated successfully")
     }
-
    
     pub async fn query_todos(&self) -> Result<Vec<sqlx::postgres::PgRow>, sqlx::Error> {
         println!("Querying todos from the database...");

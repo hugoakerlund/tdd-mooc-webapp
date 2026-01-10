@@ -5,6 +5,7 @@ use backend::{CreateTodo,
               delete_todo,
               increase_todo_priority,
               decrease_todo_priority,
+              clear_todo_list,
               root};
 use backend::todo_list_dao::TodoListDao;
 use axum::http::StatusCode;
@@ -71,6 +72,22 @@ async fn test_decrease_todo_priority() {
     let (status, json) = decrease_todo_priority(axum::Extension(Arc::new(dao)), axum::Json(IdPayload { id: 1 })).await;
     assert_eq!(status, StatusCode::ACCEPTED);
     assert_eq!(json.0.text, "Todo with id 1 priority decreased");
+}
+
+#[tokio::test]
+async fn test_clear_todo_list() {
+    let dao = TodoListDao::new().await.unwrap();
+    dao.initialize().await;
+    let todo = backend::Todo {
+        id: 1,
+        title: "Test Truncate".to_string(),
+        priority: 1,
+        completed: false,
+    };
+    dao.save_todo(&todo).await.unwrap();
+    let (status, json) = clear_todo_list(axum::Extension(Arc::new(dao))).await;
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(json.0.text, "All todos have been deleted");
 }
 
 #[tokio::test]
@@ -144,7 +161,7 @@ async fn test_dao_truncate_tables() {
     println!("Todos after save: {:?}", after_save);
     assert_eq!(after_save.len(), 1, "Expected todos in the database after saving");
 
-    dao.trucate_tables().await.unwrap();
+    dao.truncate_tables().await.unwrap();
     let after_truncate = dao.query_todos().await.unwrap();
     assert_eq!(after_truncate.len(), 0, "Expected no todos in the database after truncating");
 }

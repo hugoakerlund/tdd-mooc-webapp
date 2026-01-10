@@ -93,6 +93,15 @@ const TodoList: React.FC = () => {
     }
   };
 
+  const clearTodos = async () => {
+    try {
+      const response = await apiClient.post<{ text: string }>('/api/todos/clear', {});
+      setTodos([]);
+    } catch (error) {
+      console.error('Error clearing todos:', error);
+    }
+  };
+
 const noBullets={
   listStyleType:'none'
 }
@@ -133,6 +142,21 @@ const noBullets={
           }}
         >
           Add
+        </button>
+        <button
+          onClick={clearTodos}
+          style={{
+            padding: '8px 16px',
+            borderRadius: 4,
+            border: 'none',
+            backgroundColor: '#148a18',
+            color: 'white',
+            cursor: 'pointer',
+            fontSize: 14,
+            fontWeight: 500,
+          }}
+        >
+          Clear All
         </button>
       </div>
       <div className="todo-count" style={{ marginBottom: 20, fontWeight: 'bold' }}>

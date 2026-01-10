@@ -46,6 +46,7 @@ pub fn build_app(db: Arc<todo_list_dao::TodoListDao>) -> Router {
         .route("/api/todos/delete", post(delete_todo))
         .route("/api/todos/increase_priority", post(increase_todo_priority))
         .route("/api/todos/decrease_priority", post(decrease_todo_priority))
+        .route("/api/todos/clear", post(clear_todo_list))
         .layer(Extension(db))
         .layer(cors)
 }
@@ -149,6 +150,16 @@ pub async fn decrease_todo_priority(Extension(
         Err(_) => {
             (StatusCode::INTERNAL_SERVER_ERROR, Json(Message { text: "Failed to decrease todo priority".into() }))
         }
+    }
+}
+
+pub async fn clear_todo_list(Extension(
+    db): Extension<Arc<todo_list_dao::TodoListDao>>) 
+    -> (StatusCode, Json<Message>) {
+    println!("Clearing todo list...");
+    match db.truncate_tables().await {
+        Ok(_) => (StatusCode::OK, Json(Message { text: "All todos have been deleted".to_string() })),
+        Err(_) => (StatusCode::INTERNAL_SERVER_ERROR, Json(Message { text: "Failed to clear todo list".to_string() })),
     }
 }
 
