@@ -43,6 +43,7 @@ pub fn build_app(db: Arc<todo_list_dao::TodoListDao>) -> Router {
         .route("/", get(root))
         .route("/api/todos", get(list_todos).post(create_todo))
         .route("/api/todos/complete", post(toggle_todo_completion))
+        .route("/api/todos/delete", post(delete_todo))
         .layer(Extension(db))
         .layer(cors)
 }
@@ -91,6 +92,26 @@ pub async fn toggle_todo_completion(Extension(
         Err(_) => {
             let fallback = Todo { id: payload.id, title: String::new(), priority: 0, completed: true };
             (StatusCode::INTERNAL_SERVER_ERROR, Json(fallback))
+        }
+    }
+}
+
+pub async fn delete_todo(Extension(
+    db): Extension<Arc<todo_list_dao::TodoListDao>>, 
+    Json(payload): Json<IdPayload>) -> (StatusCode, Json<Message>) {
+    println!("Deleting todo");
+
+    let id = payload.id as u64;
+
+    match db.delete_todo(id).await {
+        Ok(_) => {
+            let msg = Message { text: format!("Todo with id {} deleted successfully", payload.id) };
+            (StatusCode::OK, Json(msg))
+        }
+
+        Err(_) => {
+            let msg = Message { text: format!("Failed to delete todo with id {}", payload.id) };
+            (StatusCode::INTERNAL_SERVER_ERROR, Json(msg))
         }
     }
 }

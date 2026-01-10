@@ -74,6 +74,16 @@ const TodoList: React.FC = () => {
     }
   };
 
+  const deleteTodo = (id: number) => async () => {
+    console.log('Deleting todo with id:', id);
+    try {
+      const response = await apiClient.post<{ text: string }>('/api/todos/delete', { id });
+      setTodos((prev) => prev.filter((t) => t.id !== id));
+    } catch (error) {
+      console.error('Error deleting todo:', error);
+    }
+  };
+
   return (
     <div>
       <h1>Todo List</h1>
@@ -122,6 +132,21 @@ const TodoList: React.FC = () => {
       <ul>
         {todos.map((todo) => (
           <li key={todo.id} style={{ marginBottom: 8 }}>
+            <button
+              onClick={deleteTodo(todo.id)}
+              style={{
+                marginRight: 8,
+                padding: '4px 8px',
+                borderRadius: 4,
+                border: 'none',
+                backgroundColor: '#dc3545',
+                color: 'white',
+                cursor: 'pointer',
+                fontSize: 12,
+              }}
+            >
+              Delete
+            </button>
             <input
               type="checkbox"
               checked={todo.completed}

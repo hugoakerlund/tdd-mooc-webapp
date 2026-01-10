@@ -108,4 +108,13 @@ impl TodoListDao {
             .await?;
         Ok(todo_id as u32)
     }
+
+    pub async fn increase_todo_priority(&self, todo_id: u64) -> Result<u32, sqlx::Error> {
+        println!("Increasing priority of todo with id {} in the database...", todo_id);
+        sqlx::query("UPDATE todos SET priority = priority + 1 WHERE id = $1")
+            .bind(todo_id as i32)
+            .execute(&self.database)
+            .await?;
+        Ok(todo_id as u32)
+    }
 }
