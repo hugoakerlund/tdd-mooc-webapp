@@ -87,6 +87,27 @@ async fn test_archive_completed_todos() {
 }
 
 #[tokio::test]
+async fn test_rename_todo() {
+    let todo = backend::Todo {
+        id: 1,
+        title: "Old Title".to_string(),
+        priority: 1,
+        completed: false,
+    };
+    let dao: TodoListDao = TodoListDao::new().await.unwrap();
+    dao.initialize().await;
+    dao.save_todo(&todo).await.unwrap();
+    let todos_before_rename = dao.query_todos().await.unwrap();
+    println!("Todos before rename: {:?}", todos_before_rename);
+
+    dao.rename_todo(todo.id as u64, "New Title".to_string()).await.unwrap();
+    let todos_after_rename = dao.query_todos().await.unwrap();
+    println!("Todos after rename: {:?}", todos_after_rename);
+    let renamed_title = todos_after_rename[0].get::<String, _>("title");
+    assert_eq!(renamed_title, "New Title", "Expected the todo title to be updated");
+}
+
+#[tokio::test]
 async fn test_truncate_todos_table() {
     let todo = backend::Todo {
         id: 1,

@@ -1,7 +1,9 @@
 use backend::{CreateTodo, 
               IdPayload, 
+              RenamePayload,
               create_todo, 
               archive_completed_todos,
+              rename_todo,
               toggle_todo_completion, 
               delete_todo,
               increase_todo_priority,
@@ -53,6 +55,25 @@ async fn test_archive_completed_todos() {
     let (status, json) = archive_completed_todos(axum::Extension(Arc::new(dao))).await;
     assert_eq!(status, StatusCode::OK);
     assert_eq!(json.0.text, "Archived 1 completed todo(s)");
+}
+
+#[tokio::test]
+async fn test_rename_todo() {
+    let payload = RenamePayload { id: 1, new_title: "New Title".to_string() };
+    let dao = TodoListDao::new().await.unwrap();
+    dao.initialize().await;
+    let todo = backend::Todo {
+        id: 1,
+        title: "Old Title".to_string(),
+        priority: 1,
+        completed: false,
+    };
+    dao.save_todo(&todo).await.unwrap();
+    let new_title = "New Title".to_string();
+    let (status, json) = rename_todo(axum::Extension(Arc::new(dao)), axum::Json(payload)).await;
+    assert_eq!(status, StatusCode::ACCEPTED);
+    assert_eq!(json.0.id, 1);
+    assert_eq!(json.0.title, new_title);
 }
 
 #[tokio::test]

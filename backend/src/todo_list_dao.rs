@@ -141,6 +141,16 @@ impl TodoListDao {
         Ok(result.rows_affected())
     }
 
+    pub async fn rename_todo(&self, todo_id: u64, new_title: String) -> Result<u32, sqlx::Error> {
+        println!("Renaming todo with id {} in the database...", todo_id);
+        sqlx::query("UPDATE todos SET title = $1 WHERE id = $2")
+            .bind(new_title)
+            .bind(todo_id as i32)
+            .execute(&self.database)
+            .await?;
+        Ok(todo_id as u32)
+    }
+
     pub async fn delete_todo(&self, todo_id: u64) -> Result<u64, sqlx::Error> {
         println!("Deleting todo with id {} from the database...", todo_id);
         let result = sqlx::query("DELETE FROM todos WHERE id = $1")

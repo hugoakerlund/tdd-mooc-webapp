@@ -27,6 +27,12 @@ pub struct IdPayload {
     pub id: u32,
 }
 
+#[derive(Deserialize)]
+pub struct RenamePayload {
+    pub id: u32,
+    pub new_title: String,
+}
+
 #[derive(Serialize, Debug)]
 pub struct Todo {
     pub id: u32,
@@ -48,6 +54,7 @@ pub fn build_app(db: Arc<todo_list_dao::TodoListDao>) -> Router {
         .route("/api/todos/decrease_priority", post(decrease_todo_priority))
         .route("/api/todos/clear", post(clear_todo_list))
         .route("/api/todos/archive_completed", post(archive_completed_todos))
+        .route("/api/todos/rename", post(rename_todo))
         .layer(Extension(db))
         .layer(cors)
 }
@@ -94,6 +101,26 @@ pub async fn archive_completed_todos(Extension(
         Err(_) => {
             let msg = Message { text: "Failed to archive completed todos".to_string() };
             (StatusCode::INTERNAL_SERVER_ERROR, Json(msg))
+        }
+    }
+}
+
+pub async fn rename_todo(Extension(
+    db): Extension<Arc<todo_list_dao::TodoListDao>>, 
+    Json(payload): Json<RenamePayload>) 
+    -> (StatusCode, Json<Todo>) {
+    println!("Renaming todo");
+    let id = payload.id as u64;
+    let new_title = payload.new_title;
+
+    match db.rename_todo(id, new_title.clone()).await {
+        Ok(id_u32) => {
+            let todo = Todo { id: id_u32, title: new_title.to_string(), priority: 0, completed: false };
+            (StatusCode::ACCEPTED, Json(todo))
+        }
+        Err(_) => {
+            let fallback = Todo { id: payload.id, title: new_title.to_string(), priority: 0, completed: false };
+            (StatusCode::INTERNAL_SERVER_ERROR, Json(fallback))
         }
     }
 }

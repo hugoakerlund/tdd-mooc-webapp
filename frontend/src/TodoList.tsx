@@ -59,6 +59,23 @@ const TodoList: React.FC = () => {
     }
   };
 
+  const renameTodo = (id: number) => async () => {
+    const newTitle = prompt('Enter new title for the todo:');
+    if (!newTitle) return;
+    if (newTitle.trim() === '') return;
+    if (newTitle.length > 22) {
+      alert('Title cannot be longer than 22 characters.');
+      return;
+    }
+    console.log('Renaming todo with id:', id, 'to new title:', newTitle);
+    try {
+      const response = await apiClient.post<Todo>('/api/todos/rename', { id, new_title: newTitle });
+      setTodos((prev) => prev.map((t) => t.id === id ? { ...t, title: newTitle } : t));
+    } catch (error) {
+      console.error('Error renaming todo:', error);
+    }
+  };
+
   const deleteTodo = (id: number) => async () => {
     console.log('Deleting todo with id:', id);
     try {
@@ -205,23 +222,26 @@ const TodoList: React.FC = () => {
         <button
           onClick={markAllCompleted}
           style={{
-                      padding: '8px 16px',
-                      borderRadius: 4,
-                      border: 'none',
-                      backgroundColor: '#6c757d',
-                      color: 'white',
-                      cursor: 'pointer',
-                      fontSize: 14,
-                      fontWeight: 500,
-                    }}
-          >
+            padding: '8px 16px',
+            borderRadius: 4,
+            border: 'none',
+            backgroundColor: '#6c757d',
+            color: 'white',
+            cursor: 'pointer',
+            fontSize: 14,
+            fontWeight: 500,
+          }}
+        >
           Mark All Completed
         </button>
       </div>
-      <table style={{ width: '100%', marginBottom: 16, textAlign: 'left' }}>
         <ul style={noBullets}>
           {todos.sort((a, b) => b.priority - a.priority || a.id - b.id).map((todo) => (
-            <li style={{ marginBottom: 8, display: 'flex', alignItems: 'center' }}>
+            <li style={{ marginBottom: 8, 
+                         display: 'flex', 
+                         alignItems: 'center', 
+                         width: '100%' }} 
+                key={todo.id}>
               <span style={{
                 textDecoration: 'none',
                 color: todo.completed ? 'gray' : 'white', marginLeft: 9
@@ -250,6 +270,22 @@ const TodoList: React.FC = () => {
                   }}
                 >
                   Delete
+                </button>
+                <button
+                  onClick={renameTodo(todo.id)}
+                  style={{
+                    marginLeft: 4,
+                    marginRight: 4,
+                    padding: '4px 8px',
+                    borderRadius: 4,
+                    border: 'none',
+                    backgroundColor: todo.completed ? '#827724' : '#ffe100',
+                    color: 'white',
+                    cursor: 'pointer',
+                    fontSize: 12,
+                  }}
+                  >
+                    Rename
                 </button>
                 <button
                   onClick={increaseTodoPriority(todo.id)}
@@ -290,9 +326,6 @@ const TodoList: React.FC = () => {
             </li>
           ))}
         </ul>
-      </table>
-
-
     </div>
   );
 };
