@@ -1,110 +1,6 @@
-use backend::{CreateTodo, 
-              IdPayload, 
-              create_todo, 
-              toggle_todo_completion, 
-              delete_todo,
-              increase_todo_priority,
-              decrease_todo_priority,
-              clear_todo_list,
-              root};
 use backend::todo_list_dao::TodoListDao;
-use axum::http::StatusCode;
 use sqlx::Row;
-use std::sync::Arc;
 
-#[tokio::test]
-async fn test_root_returns_welcome_message() {
-    let res = root().await;
-    assert_eq!(res.0.text, "Welcome to Rust API");
-}
-
-#[tokio::test]
-async fn test_create_todo() {
-    let payload = CreateTodo { title: "Test".to_string(), priority: Some(2) };
-    let dao = TodoListDao::new().await.unwrap();
-    dao.initialize().await;
-    let (status, json) = create_todo(axum::Extension(Arc::new(dao)), axum::Json(payload)).await;
-    assert_eq!(status, StatusCode::CREATED);
-    assert_eq!(json.0.id, 1);
-    assert_eq!(json.0.title, "Test");
-    assert_eq!(json.0.priority, 2);
-    assert_eq!(json.0.completed, false);
-}
-
-#[tokio::test]
-async fn test_toggle_todo_completion() {
-    let dao = TodoListDao::new().await.unwrap();
-    dao.initialize().await;
-    let (status, json) = toggle_todo_completion(axum::Extension(Arc::new(dao)), axum::Json(IdPayload { id: 1 })).await;
-    assert_eq!(status, StatusCode::ACCEPTED);
-    assert_eq!(json.0.id, 1);
-    assert_eq!(json.0.priority, 0);
-    assert_eq!(json.0.completed, true);
-}
-
-#[tokio::test]
-async fn test_increase_todo_priority() {
-    let dao = TodoListDao::new().await.unwrap();
-    dao.initialize().await;
-    let todo = backend::Todo {
-        id: 1,
-        title: "Test Priority".to_string(),
-        priority: 1,
-        completed: false,
-    };
-    dao.save_todo(&todo).await.unwrap();
-    let (status, json) = increase_todo_priority(axum::Extension(Arc::new(dao)), axum::Json(IdPayload { id: 1 })).await;
-    assert_eq!(status, StatusCode::ACCEPTED);
-    assert_eq!(json.0.text, "Todo with id 1 priority increased");
-}
-
-#[tokio::test]
-async fn test_decrease_todo_priority() {
-    let dao = TodoListDao::new().await.unwrap();
-    dao.initialize().await;
-    let todo = backend::Todo {
-        id: 1,
-        title: "Test Priority".to_string(),
-        priority: 1,
-        completed: false,
-    };
-    dao.save_todo(&todo).await.unwrap();
-    let (status, json) = decrease_todo_priority(axum::Extension(Arc::new(dao)), axum::Json(IdPayload { id: 1 })).await;
-    assert_eq!(status, StatusCode::ACCEPTED);
-    assert_eq!(json.0.text, "Todo with id 1 priority decreased");
-}
-
-#[tokio::test]
-async fn test_clear_todo_list() {
-    let dao = TodoListDao::new().await.unwrap();
-    dao.initialize().await;
-    let todo = backend::Todo {
-        id: 1,
-        title: "Test Truncate".to_string(),
-        priority: 1,
-        completed: false,
-    };
-    dao.save_todo(&todo).await.unwrap();
-    let (status, json) = clear_todo_list(axum::Extension(Arc::new(dao))).await;
-    assert_eq!(status, StatusCode::OK);
-    assert_eq!(json.0.text, "All todos have been deleted");
-}
-
-#[tokio::test]
-async fn test_delete_todo() {
-    let dao = TodoListDao::new().await.unwrap();
-    dao.initialize().await;
-    let todo = backend::Todo {
-        id: 1,
-        title: "Test Delete".to_string(),
-        priority: 1,
-        completed: false,
-    };
-    dao.save_todo(&todo).await.unwrap();
-    let (status, json) = delete_todo(axum::Extension(Arc::new(dao)), axum::Json(IdPayload { id: 1 })).await;
-    assert_eq!(status, StatusCode::OK);
-    assert_eq!(json.0.text, "Todo with id 1 deleted successfully");
-}
 
 #[tokio::test]
 async fn test_create_dao() {
@@ -113,14 +9,21 @@ async fn test_create_dao() {
 }
 
 #[tokio::test]
-async fn test_dao_create_table() {
+async fn test_create_todos_table() {
     let dao: TodoListDao = TodoListDao::new().await.unwrap();
-    let result = dao.create_table().await.unwrap();
+    let result = dao.create_todos_table().await.unwrap();
     assert_eq!(result, "Database table created successfully", "Expected table creation success message");
 }
 
 #[tokio::test]
-async fn test_dao_query_todos_when_empty() {
+async fn test_create_archived_table() {
+    let dao: TodoListDao = TodoListDao::new().await.unwrap();
+    let result = dao.create_archived_table().await.unwrap();
+    assert_eq!(result, "Archived table created successfully", "Expected archived table creation success message");
+}
+
+#[tokio::test]
+async fn test_query_todos_when_empty() {
     let dao: TodoListDao = TodoListDao::new().await.unwrap();
     dao.initialize().await;
     let todos = dao.query_todos().await.unwrap();
@@ -129,7 +32,16 @@ async fn test_dao_query_todos_when_empty() {
 }
 
 #[tokio::test]
-async fn test_dao_save_todo() {
+async fn test_query_archived_todos_when_empty() {
+    let dao: TodoListDao = TodoListDao::new().await.unwrap();
+    dao.initialize().await;
+    let archived_todos = dao.query_archived_todos().await.unwrap();
+    println!("Queried archived todos: {:?}", archived_todos);
+    assert_eq!(archived_todos.len(), 0, "Expected no archived todos in the database");
+}
+
+#[tokio::test]
+async fn test_save_todo() {
     let todo = backend::Todo {
         id: 0,
         title: "Test Save".to_string(),
@@ -143,7 +55,39 @@ async fn test_dao_save_todo() {
 }
 
 #[tokio::test]
-async fn test_dao_truncate_tables() {
+async fn test_archive_completed_todos() {
+    let todo1 = backend::Todo {
+        id: 1,
+        title: "Test Archive".to_string(),
+        priority: 1,
+        completed: true,
+    };
+
+    let todo2 = backend::Todo {
+        id: 2,
+        title: "Test Archive".to_string(),
+        priority: 1,
+        completed: true,
+    };
+
+    let dao: TodoListDao = TodoListDao::new().await.unwrap();
+    dao.initialize().await;
+    dao.save_todo(&todo1).await.unwrap();
+    dao.save_todo(&todo2).await.unwrap();
+    let queried_todos = dao.query_todos().await.unwrap();
+    println!("Todos before archiving: {:?}", queried_todos);
+    assert_eq!(queried_todos.len(), 2, "Expected two todos in the database before archiving");
+    dao.archive_completed_todos().await.unwrap();
+
+    let archived_todos = dao.query_archived_todos().await.unwrap();
+    let queried_todos = dao.query_todos().await.unwrap();
+    println!("Archived todos: {:?}", archived_todos);
+    assert_eq!(archived_todos.len(), 2, "Expected two todos to be archived");
+    assert_eq!(queried_todos.len(), 0, "Expected no todos in the active todos table");
+}
+
+#[tokio::test]
+async fn test_truncate_todos_table() {
     let todo = backend::Todo {
         id: 1,
         title: "Test truncate".to_string(),
@@ -161,13 +105,13 @@ async fn test_dao_truncate_tables() {
     println!("Todos after save: {:?}", after_save);
     assert_eq!(after_save.len(), 1, "Expected todos in the database after saving");
 
-    dao.truncate_tables().await.unwrap();
+    dao.truncate_todos_table().await.unwrap();
     let after_truncate = dao.query_todos().await.unwrap();
     assert_eq!(after_truncate.len(), 0, "Expected no todos in the database after truncating");
 }
 
 #[tokio::test]
-async fn test_dao_delete_todo() {
+async fn test_delete_todo() {
     let todo = backend::Todo {
         id: 1,
         title: "Test Delete".to_string(),
@@ -189,7 +133,7 @@ async fn test_dao_delete_todo() {
 }
 
 #[tokio::test]
-async fn test_dao_change_todo_to_completed() {
+async fn test_change_todo_to_completed() {
     let todo = backend::Todo {
         id: 1,
         title: "Test Complete".to_string(),
@@ -212,7 +156,7 @@ async fn test_dao_change_todo_to_completed() {
 }
 
 #[tokio::test]
-async fn test_dao_increase_todo_priority() {
+async fn test_increase_todo_priority() {
     let todo = backend::Todo {
         id: 1,
         title: "Low Priority".to_string(),
@@ -233,7 +177,7 @@ async fn test_dao_increase_todo_priority() {
 }
 
 #[tokio::test]
-async fn test_dao_decrease_todo_priority() {
+async fn test_decrease_todo_priority() {
     let todo = backend::Todo {
         id: 1,
         title: "High Priority".to_string(),

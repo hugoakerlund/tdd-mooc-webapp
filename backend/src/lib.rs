@@ -47,6 +47,7 @@ pub fn build_app(db: Arc<todo_list_dao::TodoListDao>) -> Router {
         .route("/api/todos/increase_priority", post(increase_todo_priority))
         .route("/api/todos/decrease_priority", post(decrease_todo_priority))
         .route("/api/todos/clear", post(clear_todo_list))
+        .route("/api/todos/archive_completed", post(archive_completed_todos))
         .layer(Extension(db))
         .layer(cors)
 }
@@ -77,6 +78,23 @@ pub async fn create_todo(Extension(
             (StatusCode::CREATED, Json(todo))
         }
         Err(_) => (StatusCode::INTERNAL_SERVER_ERROR, Json(new)),
+    }
+}
+
+pub async fn archive_completed_todos(Extension(
+    db): Extension<Arc<todo_list_dao::TodoListDao>>) 
+    -> (StatusCode, Json<Message>) {
+    println!("Archiving completed todos...");
+
+    match db.archive_completed_todos().await {
+        Ok(count) => {
+            let msg = Message { text: format!("Archived {} completed todo(s)", count) };
+            (StatusCode::OK, Json(msg))
+        }
+        Err(_) => {
+            let msg = Message { text: "Failed to archive completed todos".to_string() };
+            (StatusCode::INTERNAL_SERVER_ERROR, Json(msg))
+        }
     }
 }
 
@@ -111,7 +129,6 @@ pub async fn delete_todo(Extension(
             let msg = Message { text: format!("Todo with id {} deleted successfully", payload.id) };
             (StatusCode::OK, Json(msg))
         }
-
         Err(_) => {
             let msg = Message { text: format!("Failed to delete todo with id {}", payload.id) };
             (StatusCode::INTERNAL_SERVER_ERROR, Json(msg))
@@ -157,7 +174,7 @@ pub async fn clear_todo_list(Extension(
     db): Extension<Arc<todo_list_dao::TodoListDao>>) 
     -> (StatusCode, Json<Message>) {
     println!("Clearing todo list...");
-    match db.truncate_tables().await {
+    match db.truncate_todos_table().await {
         Ok(_) => (StatusCode::OK, Json(Message { text: "All todos have been deleted".to_string() })),
         Err(_) => (StatusCode::INTERNAL_SERVER_ERROR, Json(Message { text: "Failed to clear todo list".to_string() })),
     }

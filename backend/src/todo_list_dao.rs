@@ -30,12 +30,13 @@ impl TodoListDao {
     }
 
     pub async fn initialize(&self) {
-        // self.trucate_tables().await.ok().unwrap();
-        self.drop_tables().await.ok().unwrap(); 
-        self.create_table().await.ok().unwrap();
+        self.drop_todos_table().await.ok().unwrap(); 
+        self.drop_archived_table().await.ok().unwrap();
+        self.create_todos_table().await.ok().unwrap();
+        self.create_archived_table().await.ok().unwrap();
     }
 
-    pub async fn create_table(&self) -> Result<&'static str, sqlx::Error> {
+    pub async fn create_todos_table(&self) -> Result<&'static str, sqlx::Error> {
         sqlx::query(
             "CREATE TABLE IF NOT EXISTS todos (
                 id SERIAL PRIMARY KEY,
@@ -50,14 +51,37 @@ impl TodoListDao {
         Ok("Database table created successfully")
     }
 
-     pub async fn drop_tables(&self) -> Result<&'static str, sqlx::Error> {
+    pub async fn create_archived_table(&self) -> Result<&'static str, sqlx::Error> {
+        sqlx::query(
+            "CREATE TABLE IF NOT EXISTS archived (
+                id SERIAL PRIMARY KEY,
+                title TEXT NOT NULL,
+                priority INT NOT NULL,
+                completed BOOLEAN DEFAULT FALSE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                archived_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )"
+        )
+        .execute(&self.database)
+        .await?;
+        Ok("Archived table created successfully")
+    }
+
+     pub async fn drop_todos_table(&self) -> Result<&'static str, sqlx::Error> {
         sqlx::query("DROP TABLE IF EXISTS todos")
             .execute(&self.database)
             .await?;
         Ok("All tables dropped successfully")
     }
 
-    pub async fn truncate_tables(&self) -> Result<&'static str, sqlx::Error> {
+    pub async fn drop_archived_table(&self) -> Result<&'static str, sqlx::Error> {
+        sqlx::query("DROP TABLE IF EXISTS archived")
+            .execute(&self.database)
+            .await?;
+        Ok("Archived table dropped successfully")
+    }
+
+    pub async fn truncate_todos_table(&self) -> Result<&'static str, sqlx::Error> {
         sqlx::query("TRUNCATE TABLE todos")
             .execute(&self.database)
             .await?;
@@ -75,6 +99,17 @@ impl TodoListDao {
         Ok(todos)
     }
 
+    pub async fn query_archived_todos(&self) -> Result<Vec<sqlx::postgres::PgRow>, sqlx::Error> {
+        println!("Querying archived todos from the database...");
+        let archived_todos: Vec<sqlx::postgres::PgRow> = sqlx::query("
+            SELECT id, title, priority, completed, archived_at
+            FROM archived
+            ORDER BY archived_at DESC")
+            .fetch_all(&self.database)
+            .await?;
+        Ok(archived_todos)
+    }
+
     pub async fn save_todo(&self, todo: &Todo) -> Result<u32, sqlx::Error> {
         println!("Saving todo to the database...");
         let row = sqlx::query(
@@ -88,6 +123,22 @@ impl TodoListDao {
 
         let id: i32 = row.get("id");
         Ok(id as u32)
+    }
+
+    pub async fn archive_completed_todos(&self) -> Result<u64, sqlx::Error> {
+        println!("Archiving completed todos...");
+        let result = sqlx::query(
+            "INSERT INTO archived (title, priority, completed)
+             SELECT title, priority, completed FROM todos WHERE completed = TRUE"
+        )
+        .execute(&self.database)
+        .await?;
+
+        sqlx::query("DELETE FROM todos WHERE completed = TRUE")
+            .execute(&self.database)
+            .await?;
+
+        Ok(result.rows_affected())
     }
 
     pub async fn delete_todo(&self, todo_id: u64) -> Result<u64, sqlx::Error> {

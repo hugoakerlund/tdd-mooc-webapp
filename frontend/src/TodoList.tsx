@@ -71,7 +71,7 @@ const TodoList: React.FC = () => {
 
   const increaseTodoPriority = (id: number) => async () => {
     if (todos.find((t) => t.id === id)?.priority === 10 ||
-        todos.find((t) => t.id === id)?.completed === true) return;
+      todos.find((t) => t.id === id)?.completed === true) return;
     console.log('Increasing priority for todo with id:', id);
     try {
       const response = await apiClient.post<{ text: string }>('/api/todos/increase_priority', { id });
@@ -82,8 +82,8 @@ const TodoList: React.FC = () => {
   };
 
   const decreaseTodoPriority = (id: number) => async () => {
-    if (todos.find((t) => t.id === id)?.priority === 1 || 
-        todos.find((t) => t.id === id)?.completed === true) return;
+    if (todos.find((t) => t.id === id)?.priority === 1 ||
+      todos.find((t) => t.id === id)?.completed === true) return;
     console.log('Decreasing priority for todo with id:', id);
     try {
       const response = await apiClient.post<{ text: string }>('/api/todos/decrease_priority', { id });
@@ -102,9 +102,18 @@ const TodoList: React.FC = () => {
     }
   };
 
-const noBullets={
-  listStyleType:'none'
-}
+  const arvhiveCompletedTodos = async () => {
+    try {
+      const response = await apiClient.post<{ text: string }>('/api/todos/archive_completed', {});
+      setTodos((prev) => prev.filter((t) => !t.completed));
+    } catch (error) {
+      console.error('Error archiving completed todos:', error);
+    }
+  };
+
+  const noBullets = {
+    listStyleType: 'none'
+  }
   return (
     <div>
       <h1>Todo List</h1>
@@ -158,19 +167,38 @@ const noBullets={
         >
           Clear All
         </button>
+        <button
+          onClick={arvhiveCompletedTodos}
+          style={{
+            padding: '8px 16px',
+            borderRadius: 4,
+            border: 'none',
+            backgroundColor: '#6c757d',
+            color: 'white',
+            cursor: 'pointer',
+            fontSize: 14,
+            fontWeight: 500,
+          }}
+        >
+          Archive Completed
+        </button>
       </div>
       <div className="todo-count" style={{ marginBottom: 20, fontWeight: 'bold' }}>
         Total Todos: {todos.length}
       </div>
-      <ul style={noBullets}> 
+      <ul style={noBullets}>
         {todos.sort((a, b) => b.priority - a.priority || a.id - b.id).map((todo) => (
-          <li  style={{ marginBottom: 8 }}>
-            <span style={{ textDecoration: 'none', 
-                           color: todo.completed ? 'gray' : 'white', marginLeft: 9 }}>
+          <li style={{ marginBottom: 8 }}>
+            <span style={{
+              textDecoration: 'none',
+              color: todo.completed ? 'gray' : 'white', marginLeft: 9
+            }}>
               {todo.priority}.
             </span>
-            <span style={{ textDecoration: todo.completed ? 'line-through' : 'none', 
-                           color: todo.completed ? 'gray' : 'white', marginLeft: 8 }}>
+            <span style={{
+              textDecoration: todo.completed ? 'line-through' : 'none',
+              color: todo.completed ? 'gray' : 'white', marginLeft: 8
+            }}>
               {todo.title}
             </span>
             <button
@@ -181,7 +209,7 @@ const noBullets={
                 padding: '4px 8px',
                 borderRadius: 4,
                 border: 'none',
-                backgroundColor: todo.completed ? '#ff0019' : '#dc3545',
+                backgroundColor: todo.completed ? '#ff0019' : '#9a323d',
                 color: 'white',
                 cursor: 'pointer',
                 fontSize: 12,
@@ -224,7 +252,6 @@ const noBullets={
               checked={todo.completed}
               onChange={() => toggleCompleted(todo.id)}
             />
-
           </li>
         ))}
       </ul>
