@@ -111,15 +111,47 @@ const TodoList: React.FC = () => {
     }
   };
 
+  const markAllCompleted = async () => {
+    try {
+      const incompleteTodos = todos.filter((t) => !t.completed);
+      for (const todo of incompleteTodos) {
+        await apiClient.post<Todo>('/api/todos/complete', { id: todo.id });
+      }
+      setTodos((prev) => prev.map((t) => ({ ...t, completed: true })));
+    } catch (error) {
+      console.error('Error marking all todos as completed:', error);
+    }
+  };
+
   const noBullets = {
     listStyleType: 'none'
   }
+
   return (
     <div>
       <h1>Todo List</h1>
+      <div className="todo-count" style={{ marginBottom: 20, fontWeight: 'bold' }}>
+        Total Todos: {todos.length}
+      </div>
       <div style={{ marginBottom: 14, display: 'flex', gap: 8 }}>
+        <button
+          onClick={arvhiveCompletedTodos}
+          style={{
+            padding: '8px 16px',
+            borderRadius: 4,
+            border: 'none',
+            backgroundColor: '#6c757d',
+            color: 'white',
+            cursor: 'pointer',
+            fontSize: 14,
+            fontWeight: 500,
+          }}
+        >
+          Archive Completed
+        </button>
         <input
           type="text"
+          maxLength={22}
           placeholder="Add todo..."
           value={newTitle}
           onChange={(e) => setNewTitle(e.target.value)}
@@ -129,7 +161,8 @@ const TodoList: React.FC = () => {
             }
           }}
           style={{
-            flex: 1,
+            accentColor: '#007bff',
+            flex: 2,
             padding: '8px 12px',
             borderRadius: 4,
             border: '1px solid #ddd',
@@ -167,94 +200,99 @@ const TodoList: React.FC = () => {
         >
           Clear All
         </button>
+      </div>
+      <div>
         <button
-          onClick={arvhiveCompletedTodos}
+          onClick={markAllCompleted}
           style={{
-            padding: '8px 16px',
-            borderRadius: 4,
-            border: 'none',
-            backgroundColor: '#6c757d',
-            color: 'white',
-            cursor: 'pointer',
-            fontSize: 14,
-            fontWeight: 500,
-          }}
-        >
-          Archive Completed
+                      padding: '8px 16px',
+                      borderRadius: 4,
+                      border: 'none',
+                      backgroundColor: '#6c757d',
+                      color: 'white',
+                      cursor: 'pointer',
+                      fontSize: 14,
+                      fontWeight: 500,
+                    }}
+          >
+          Mark All Completed
         </button>
       </div>
-      <div className="todo-count" style={{ marginBottom: 20, fontWeight: 'bold' }}>
-        Total Todos: {todos.length}
-      </div>
-      <ul style={noBullets}>
-        {todos.sort((a, b) => b.priority - a.priority || a.id - b.id).map((todo) => (
-          <li style={{ marginBottom: 8 }}>
-            <span style={{
-              textDecoration: 'none',
-              color: todo.completed ? 'gray' : 'white', marginLeft: 9
-            }}>
-              {todo.priority}.
-            </span>
-            <span style={{
-              textDecoration: todo.completed ? 'line-through' : 'none',
-              color: todo.completed ? 'gray' : 'white', marginLeft: 8
-            }}>
-              {todo.title}
-            </span>
-            <button
-              onClick={deleteTodo(todo.id)}
-              style={{
-                marginRight: 4,
-                marginLeft: 100,
-                padding: '4px 8px',
-                borderRadius: 4,
-                border: 'none',
-                backgroundColor: todo.completed ? '#ff0019' : '#9a323d',
-                color: 'white',
-                cursor: 'pointer',
-                fontSize: 12,
-              }}
-            >
-              Delete
-            </button>
-            <button
-              onClick={increaseTodoPriority(todo.id)}
-              style={{
-                marginRight: 4,
-                padding: '1px 6px',
-                borderRadius: 4,
-                border: 'none',
-                backgroundColor: todo.completed ? '#202e23' : '#28a745',
-                color: 'white',
-                cursor: 'pointer',
-                fontSize: 12,
-              }}
-            >
-              +
-            </button>
-            <button
-              onClick={decreaseTodoPriority(todo.id)}
-              style={{
-                marginRight: 4,
-                padding: '1px 6px',
-                borderRadius: 4,
-                border: 'none',
-                backgroundColor: todo.completed ? '#40371c' : '#ffc107',
-                color: 'white',
-                cursor: 'pointer',
-                fontSize: 12,
-              }}
-            >
-              -
-            </button>
-            <input
-              type="checkbox"
-              checked={todo.completed}
-              onChange={() => toggleCompleted(todo.id)}
-            />
-          </li>
-        ))}
-      </ul>
+      <table style={{ width: '100%', marginBottom: 16, textAlign: 'left' }}>
+        <ul style={noBullets}>
+          {todos.sort((a, b) => b.priority - a.priority || a.id - b.id).map((todo) => (
+            <li style={{ marginBottom: 8, display: 'flex', alignItems: 'center' }}>
+              <span style={{
+                textDecoration: 'none',
+                color: todo.completed ? 'gray' : 'white', marginLeft: 9
+              }}>
+                {todo.priority}.
+              </span>
+              <span style={{
+                textDecoration: todo.completed ? 'line-through' : 'none',
+                color: todo.completed ? 'gray' : 'white', marginLeft: 8,
+              }}>
+                {todo.title}
+              </span>
+              <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center' }}>
+                <button
+                  onClick={deleteTodo(todo.id)}
+                  style={{
+                    marginLeft: 80,
+                    marginRight: 4,
+                    padding: '4px 8px',
+                    borderRadius: 4,
+                    border: 'none',
+                    backgroundColor: todo.completed ? '#ff0019' : '#9a323d',
+                    color: 'white',
+                    cursor: 'pointer',
+                    fontSize: 12,
+                  }}
+                >
+                  Delete
+                </button>
+                <button
+                  onClick={increaseTodoPriority(todo.id)}
+                  style={{
+                    marginRight: 4,
+                    padding: '1px 6px',
+                    borderRadius: 4,
+                    border: 'none',
+                    backgroundColor: todo.completed ? '#202e23' : '#28a745',
+                    color: 'white',
+                    cursor: 'pointer',
+                    fontSize: 12,
+                  }}
+                >
+                  +
+                </button>
+                <button
+                  onClick={decreaseTodoPriority(todo.id)}
+                  style={{
+                    marginRight: 4,
+                    padding: '1px 6px',
+                    borderRadius: 4,
+                    border: 'none',
+                    backgroundColor: todo.completed ? '#40371c' : '#ffc107',
+                    color: 'white',
+                    cursor: 'pointer',
+                    fontSize: 12,
+                  }}
+                >
+                  -
+                </button>
+                <input
+                  type="checkbox"
+                  checked={todo.completed}
+                  onChange={() => toggleCompleted(todo.id)}
+                />
+              </div>
+            </li>
+          ))}
+        </ul>
+      </table>
+
+
     </div>
   );
 };
