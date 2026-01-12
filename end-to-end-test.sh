@@ -6,6 +6,6 @@ front_end_response_status=$?
 test "$front_end_response_status" = 0
 
 backend_response=$(curl --silent --show-error http://localhost:3001)
-test "$backend_response" = "{\"text\":\"Welcome to Rust API\"}"
+test "$backend_response" = "{\"text\":\"Hello from backend!\"}"
 
 : OK
