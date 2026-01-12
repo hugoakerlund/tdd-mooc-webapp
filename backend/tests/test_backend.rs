@@ -17,7 +17,7 @@ use std::sync::Arc;
 #[tokio::test]
 async fn test_root_returns_welcome_message() {
     let res = root().await;
-    assert_eq!(res.0.text, "Welcome to Rust API");
+    assert_eq!(res.0.text, "Hello from backend!");
 }
 
 #[tokio::test]

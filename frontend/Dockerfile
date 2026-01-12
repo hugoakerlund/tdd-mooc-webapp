@@ -1,9 +1,9 @@
-FROM nginx:1.20
+FROM node:16-alpine
+RUN mkdir /app
+WORKDIR /app
+COPY package.json /app
 
-COPY docker/nginx-default.conf.template /etc/nginx/conf.d/default.conf.template
-
-COPY docker/docker-entrypoint.sh /
-ENTRYPOINT ["/docker-entrypoint.sh"]
-CMD ["nginx", "-g", "daemon off;"]
-
-COPY html /usr/share/nginx/html
+RUN npm install
+COPY . /app
+EXPOSE 3000
+CMD ["npm", "start"]

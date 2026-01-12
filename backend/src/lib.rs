@@ -48,7 +48,7 @@ pub fn build_app(db: Arc<todo_list_dao::TodoListDao>) -> Router {
     Router::new()
         .route("/", get(root))
         .route("/api/todos", get(list_todos).post(create_todo))
-        .route("/api/todos/complete", post(toggle_todo_completion))
+        .route("/api/todos/complete", get(list_completed_todos).post(toggle_todo_completion))
         .route("/api/todos/delete", post(delete_todo))
         .route("/api/todos/increase_priority", post(increase_todo_priority))
         .route("/api/todos/decrease_priority", post(decrease_todo_priority))
@@ -60,9 +60,8 @@ pub fn build_app(db: Arc<todo_list_dao::TodoListDao>) -> Router {
 }
 
 pub async fn root() -> Json<Message> {
-    println!("Handling root request");
     Json(Message {
-        text: "Welcome to Rust API".to_string(),
+        text: "Hello from backend!".to_string(),
     })
 }
 
@@ -70,7 +69,6 @@ pub async fn create_todo(Extension(
     db): Extension<Arc<todo_list_dao::TodoListDao>>,
     Json(payload): Json<CreateTodo>) 
     -> (StatusCode, Json<Todo>) {
-    println!("Creating todo"); 
     let priority = payload.priority.unwrap_or(1u8);
     let new = Todo {
         id: 0,
@@ -91,7 +89,6 @@ pub async fn create_todo(Extension(
 pub async fn archive_completed_todos(Extension(
     db): Extension<Arc<todo_list_dao::TodoListDao>>) 
     -> (StatusCode, Json<Message>) {
-    println!("Archiving completed todos...");
 
     match db.archive_completed_todos().await {
         Ok(count) => {
@@ -109,7 +106,6 @@ pub async fn rename_todo(Extension(
     db): Extension<Arc<todo_list_dao::TodoListDao>>, 
     Json(payload): Json<RenamePayload>) 
     -> (StatusCode, Json<Todo>) {
-    println!("Renaming todo");
     let id = payload.id as u64;
     let new_title = payload.new_title;
 
@@ -128,7 +124,6 @@ pub async fn rename_todo(Extension(
 pub async fn toggle_todo_completion(Extension(
     db): Extension<Arc<todo_list_dao::TodoListDao>>, 
     Json(payload): Json<IdPayload>) -> (StatusCode, Json<Todo>) {
-    println!("Changing todo to completed");
 
     let id = payload.id as u64;
 
@@ -147,7 +142,6 @@ pub async fn toggle_todo_completion(Extension(
 pub async fn delete_todo(Extension(
     db): Extension<Arc<todo_list_dao::TodoListDao>>, 
     Json(payload): Json<IdPayload>) -> (StatusCode, Json<Message>) {
-    println!("Deleting todo");
 
     let id = payload.id as u64;
 
@@ -166,7 +160,6 @@ pub async fn delete_todo(Extension(
 pub async fn increase_todo_priority(Extension(
     db): Extension<Arc<todo_list_dao::TodoListDao>>, 
     Json(payload): Json<IdPayload>) -> (StatusCode, Json<Message>) {
-    println!("Increasing todo priority");
 
     let id = payload.id as u64;
 
@@ -183,7 +176,6 @@ pub async fn increase_todo_priority(Extension(
 pub async fn decrease_todo_priority(Extension(
     db): Extension<Arc<todo_list_dao::TodoListDao>>, 
     Json(payload): Json<IdPayload>) -> (StatusCode, Json<Message>) {
-    println!("Increasing todo priority");
 
     let id = payload.id as u64;
 
@@ -200,7 +192,6 @@ pub async fn decrease_todo_priority(Extension(
 pub async fn clear_todo_list(Extension(
     db): Extension<Arc<todo_list_dao::TodoListDao>>) 
     -> (StatusCode, Json<Message>) {
-    println!("Clearing todo list...");
     match db.truncate_todos_table().await {
         Ok(_) => (StatusCode::OK, Json(Message { text: "All todos have been deleted".to_string() })),
         Err(_) => (StatusCode::INTERNAL_SERVER_ERROR, Json(Message { text: "Failed to clear todo list".to_string() })),
@@ -210,9 +201,29 @@ pub async fn clear_todo_list(Extension(
 pub async fn list_todos(Extension(
     db): Extension<Arc<todo_list_dao::TodoListDao>>) 
     -> Json<Vec<Todo>> {
-    println!("Listing todos...");
     let mut todos: Vec<Todo> = Vec::new();
     if let Ok(rows) = db.query_todos().await {
+        for row in rows {
+            let id: i32 = row.get("id");
+            let title: String = row.get("title");
+            let priority: i32 = row.get("priority");
+            let completed: bool = row.get("completed");
+            todos.push(Todo {
+                id: id as u32,
+                title,
+                priority: priority as u8,
+                completed,
+            });
+        }
+    }
+    Json(todos)
+}
+
+pub async fn list_completed_todos(Extension(
+    db): Extension<Arc<todo_list_dao::TodoListDao>>) 
+    -> Json<Vec<Todo>> {
+    let mut todos: Vec<Todo> = Vec::new();
+    if let Ok(rows) = db.query_archived_todos().await {
         for row in rows {
             let id: i32 = row.get("id");
             let title: String = row.get("title");

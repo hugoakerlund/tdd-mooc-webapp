@@ -89,7 +89,6 @@ impl TodoListDao {
     }
    
     pub async fn query_todos(&self) -> Result<Vec<sqlx::postgres::PgRow>, sqlx::Error> {
-        println!("Querying todos from the database...");
         let todos: Vec<sqlx::postgres::PgRow> = sqlx::query("
             SELECT id, title, priority, completed
             FROM todos
@@ -100,7 +99,6 @@ impl TodoListDao {
     }
 
     pub async fn query_archived_todos(&self) -> Result<Vec<sqlx::postgres::PgRow>, sqlx::Error> {
-        println!("Querying archived todos from the database...");
         let archived_todos: Vec<sqlx::postgres::PgRow> = sqlx::query("
             SELECT id, title, priority, completed, archived_at
             FROM archived
@@ -111,7 +109,6 @@ impl TodoListDao {
     }
 
     pub async fn save_todo(&self, todo: &Todo) -> Result<u32, sqlx::Error> {
-        println!("Saving todo to the database...");
         let row = sqlx::query(
             "INSERT INTO todos (title, priority, completed) VALUES ($1, $2, $3) RETURNING id"
         )
@@ -126,7 +123,6 @@ impl TodoListDao {
     }
 
     pub async fn archive_completed_todos(&self) -> Result<u64, sqlx::Error> {
-        println!("Archiving completed todos...");
         let result = sqlx::query(
             "INSERT INTO archived (title, priority, completed)
              SELECT title, priority, completed FROM todos WHERE completed = TRUE"
@@ -142,7 +138,6 @@ impl TodoListDao {
     }
 
     pub async fn rename_todo(&self, todo_id: u64, new_title: String) -> Result<u32, sqlx::Error> {
-        println!("Renaming todo with id {} in the database...", todo_id);
         sqlx::query("UPDATE todos SET title = $1 WHERE id = $2")
             .bind(new_title)
             .bind(todo_id as i32)
@@ -152,7 +147,6 @@ impl TodoListDao {
     }
 
     pub async fn delete_todo(&self, todo_id: u64) -> Result<u64, sqlx::Error> {
-        println!("Deleting todo with id {} from the database...", todo_id);
         let result = sqlx::query("DELETE FROM todos WHERE id = $1")
             .bind(todo_id as i32)
             .execute(&self.database)
@@ -161,7 +155,6 @@ impl TodoListDao {
     }
 
     pub async fn toggle_todo_completion(&self, todo_id: u64) -> Result<u32, sqlx::Error> {
-        println!("Changing todo with id {} to completed in the database...", todo_id);
         sqlx::query("UPDATE todos SET completed = NOT completed WHERE id = $1")
             .bind(todo_id as i32)
             .execute(&self.database)
@@ -170,7 +163,6 @@ impl TodoListDao {
     }
 
     pub async fn increase_todo_priority(&self, todo_id: u64) -> Result<u32, sqlx::Error> {
-        println!("Increasing priority of todo with id {} in the database...", todo_id);
         sqlx::query("UPDATE todos SET priority = priority + 1 WHERE id = $1")
             .bind(todo_id as i32)
             .execute(&self.database)
@@ -179,7 +171,6 @@ impl TodoListDao {
     }
 
     pub async fn decrease_todo_priority(&self, todo_id: u64) -> Result<u32, sqlx::Error> {
-        println!("Decreasing priority of todo with id {} in the database...", todo_id);
         sqlx::query("UPDATE todos SET priority = priority - 1 WHERE id = $1")
             .bind(todo_id as i32)
             .execute(&self.database)

@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
 set -euxo pipefail
 
-frontend_response=$(curl --silent --show-error http://localhost:8080/hello.html)
-test "$frontend_response" = "Hello from frontend"
+curl --silent --show-error --fail http://localhost:3000 > /dev/null
+front_end_response_status=$?
+test "$front_end_response_status" = 0
 
-backend_response=$(curl --silent --show-error http://localhost:8080/api/hello.html)
-test "$backend_response" = "Hello from backend"
+backend_response=$(curl --silent --show-error http://localhost:3001)
+test "$backend_response" = "{\"text\":\"Welcome to Rust API\"}"
 
 : OK
