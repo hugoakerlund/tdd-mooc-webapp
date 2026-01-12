@@ -28,7 +28,7 @@ Run backend and database tests
 
 Run frontend tests
 
-    cd fontend
+    cd frontend
     npm test
 
 Run end-to-end tests
