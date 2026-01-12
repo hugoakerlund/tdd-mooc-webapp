@@ -34,3 +34,8 @@ Run frontend tests
 Run end-to-end tests
 
     ./end-to-end-test.sh
+
+Destroy all containers
+
+    docker compose down
+
