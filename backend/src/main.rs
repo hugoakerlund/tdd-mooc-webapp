@@ -16,7 +16,7 @@ async fn main() {
 
     let app = build_app(db.clone());
 
-    let addr = SocketAddr::from(([127, 0, 0, 1], 3001));
+    let addr = SocketAddr::from(([0, 0, 0, 0], 3001));
     let msg = format!("Server listening on http://{}", addr);
     println!("{}", msg);
 

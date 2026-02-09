@@ -2,7 +2,7 @@ use axum::{
     routing::{get, post},
     Router,
     extract::{Json, Extension},
-    http::{StatusCode, Method},
+    http::{StatusCode, Method, header},
 };
 use serde::{Deserialize, Serialize};
 use tower_http::cors::{Any, CorsLayer};
@@ -43,6 +43,7 @@ pub struct Todo {
 pub fn build_app(db: Arc<todo_list_dao::TodoListDao>) -> Router {
     let cors = CorsLayer::new()
         .allow_methods([Method::GET, Method::POST])
+        .allow_headers([header::CONTENT_TYPE])
         .allow_origin(Any);
 
     Router::new()
