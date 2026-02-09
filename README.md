@@ -5,23 +5,31 @@ by [Esko Luontola](https://twitter.com/EskoLuontola) and [Nitor](https://nitor.c
 
 ## Developing
 
-Build and start all database
+Build and start all containers
 
-    docker compose up -d database
+    docker-compose up -d --build
 
-Start the database
+Stop and remove containers
 
-    cd backend
-    cargo run
-
-Start the frontend
-
-    cd frontend
-    npm start
+    docker-compose down
 
 The web app will be available at http://localhost:3000
 
-Run backend and database tests
+Start database
+
+    docker-compose up -d database
+
+Start backend
+
+    docker-compose up -d backend
+
+Start frontend
+
+    docker-compose up -d frontend
+
+## Tests
+
+Run backend tests
 
     cd backend
     cargo test -- --test-threads 1
@@ -34,8 +42,3 @@ Run frontend tests
 Run end-to-end tests
 
     ./end-to-end-test.sh
-
-Destroy all containers
-
-    docker compose down
-
