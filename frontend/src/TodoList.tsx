@@ -44,7 +44,6 @@ const TodoList: React.FC = () => {
   };
 
   const toggleCompleted = async (id: number) => {
-    console.log('Toggling todo with id:', id);
     const todo = todos.find((t) => t.id === id);
     if (!todo) return;
     try {
@@ -63,7 +62,6 @@ const TodoList: React.FC = () => {
       alert('Title cannot be longer than 22 characters.');
       return;
     }
-    console.log('Renaming todo with id:', id, 'to new title:', newTitle);
     try {
       await apiClient.post<Todo>('/api/todos/rename', { id, new_title: newTitle });
       setTodos((prev) => prev.map((t) => t.id === id ? { ...t, title: newTitle } : t));
@@ -73,7 +71,6 @@ const TodoList: React.FC = () => {
   };
 
   const deleteTodo = (id: number) => async () => {
-    console.log('Deleting todo with id:', id);
     try {
       await apiClient.post<{ text: string }>('/api/todos/delete', { id });
       setTodos((prev) => prev.filter((t) => t.id !== id));
@@ -85,7 +82,6 @@ const TodoList: React.FC = () => {
   const increaseTodoPriority = (id: number) => async () => {
     if (todos.find((t) => t.id === id)?.priority === 10 ||
       todos.find((t) => t.id === id)?.completed === true) return;
-    console.log('Increasing priority for todo with id:', id);
     try {
       await apiClient.post<{ text: string }>('/api/todos/increase_priority', { id });
       setTodos((prev) => prev.map((t) => t.id === id ? { ...t, priority: t.priority + 1 } : t));
@@ -97,7 +93,6 @@ const TodoList: React.FC = () => {
   const decreaseTodoPriority = (id: number) => async () => {
     if (todos.find((t) => t.id === id)?.priority === 1 ||
       todos.find((t) => t.id === id)?.completed === true) return;
-    console.log('Decreasing priority for todo with id:', id);
     try {
       await apiClient.post<{ text: string }>('/api/todos/decrease_priority', { id });
       setTodos((prev) => prev.map((t) => t.id === id ? { ...t, priority: t.priority - 1 } : t));
